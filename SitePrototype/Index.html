@@ -1,0 +1,237 @@
+
+<head>
+    <title>Page name</title>
+    <meta charset='utf-8'>
+
+    <style rel='stylesheet' type='text/css'>
+        
+        html {
+            min-width: 500px;
+        }
+
+        .main {
+            margin-top: 50px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .nav-bar {
+            width: 250px;
+            float: left;
+        }
+
+        .nav-bar * {
+            overflow-y: hidden;
+        }
+
+        .folder-name, .form-name {
+            border-width: 2px;
+            border-style: solid;
+            padding: 5px;
+            padding-left: 13px;
+        }
+
+        .folder-name:hover, .form-name:hover {
+            cursor: pointer;
+        }
+
+        .folder-body {
+            padding-left: 20px;
+
+            height: 0px;
+        }
+
+        .content {
+            margin-left: 250px;
+        }
+
+        @media (min-width: 1000px) {
+            .content {
+                padding-left: 20%;
+            }
+        }
+
+        @media (min-width: 750px) and (max-width: 1000px) {
+            .content {
+                padding-left: 10%;
+            }
+        }
+
+        @media (max-width: 750px) {
+            .content {
+                padding-left: 5%;
+            }
+        }
+
+        .parameter {
+            margin-top: 50px;
+        }
+
+        .parameter-text {
+            display: inline-block;
+            max-width: 200px;
+        }
+
+        .parameter-value, .parameter-button {
+            margin: 10px;
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        .parameter-text p {
+            margin: 5px;
+        }
+
+        .parameter-name {
+            font-weight: bold;
+        }
+
+        .parameter-description {
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class='main'>
+        <div class='nav-bar'>
+            <div class='folder'>
+                <div class='folder-name'>Name 1234</div>
+                <div class='folder-body'>
+                    <div class='folder'>
+                        <div class='form-name' id='6'>sdf fasfew wef</div>
+                    </div>
+
+                    <div class='folder'>
+                        <div class='folder-name'>wef uts fewehtr rt</div>
+                        <div class='folder-body'>
+                            <div class='folder'>
+                                <div class='folder-name'>Name 1234</div>
+                                <div class='folder-body'>
+                                    <div class='folder'>
+                                        <div class='form-name' id='5'>asdas asd a4</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='folder'>
+                        <div class='folder-name'>Name 1234</div>
+                        <div class='folder-body'>
+                            <div class='folder'>
+                                <div class='form-name' id='1'>asdas asd a4</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class='folder'>
+                        <div class='folder-name'>wef uts fewehtr rt</div>
+                        <div class='folder-body'>
+                            <div class='folder'>
+                                <div class='folder-name'>Name 1234</div>
+                                <div class='folder-body'>
+                                    <div class='folder'>
+                                        <div class='form-name' id='2'>asdas asd a4</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class='folder'>
+                <div class='folder-name'>Name 1234</div>
+                <div class='folder-body'>
+                    <div class='folder'>
+                        <div class='form-name' id='5'>asdas asd a4</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class='folder'>
+                <div class='form-name' id='4'>Name 1234</div>
+            </div>
+        </div>
+
+        <div class='content'>
+            <form class='parameter' method='get' action='http://localhost:80'>
+                <div class='parameter-text'>
+                    <p class='parameter-name'>asdas asads</p>
+                    <p class='parameter-description'>rgeg WER FADSF</p>
+                </div>
+                <input class='hidden' type='text' name='form-id' value='123'>
+                <input class='hidden' type='text' name='field-name' value='123'>
+                <input class='parameter-value' type='text' pattern='.*' name='field-value' value='some val+++ue'>
+                <button class='parameter-button' type='submit'>Set property</button>
+            </form>
+
+            <div class='parameter'>
+                <div class='parameter-text'>
+                    <p class='parameter-name'>asdas asads</p>
+                    <p class='parameter-description'>rgeg WER FADSF</p>
+                </div>
+                <input class='parameter-value' type='text' readonly value='some value'>          
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        var folderNames = document.getElementsByClassName('folder-name');
+        var lastOpenedFolder = null;
+
+        for (var i = 0; i < folderNames.length; ++i) {
+            folderNames[i].onclick = function() {
+
+                this.parentElement.lastElementChild.style.height = 'auto';
+                if (lastOpenedFolder != null) {
+                    while (lastOpenedFolder.className == 'folder') {
+                        lastOpenedFolder.lastElementChild.style.height = '0px';
+
+                        if (lastOpenedFolder == this.parentElement) {
+                            lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
+                            if (lastOpenedFolder.className != 'folder') {
+                                lastOpenedFolder = null;
+                            }
+                            return;
+                        }
+                        lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
+                    }
+                }
+                var currentOpenedFolder = this.parentElement;
+                while (currentOpenedFolder.className == 'folder') {
+                    currentOpenedFolder.lastElementChild.style.height = 'auto';
+                    currentOpenedFolder = currentOpenedFolder.parentElement.parentElement;
+                }
+                lastOpenedFolder = this.parentElement;
+            };
+        }
+
+        var formNames = document.getElementsByClassName('form-name');
+
+        for (var i = 0; i < formNames.length; ++i) {
+            formNames[i].onclick = function() {
+                
+                var id = this.id;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'http://localhost:80?fname=Henry&lname=Ford', false);
+                xhr.send();
+
+                if (xhr.status != 200) {
+                    alert(xhr.status + ': ' + xhr.statusText);
+                } else {
+                    alert(xhr.responseText);
+                }
+            };
+        }
+
+        var openedForm = document.getElementById('');
+        if (openedForm != null) {
+            openedForm.parentElement.parentElement.parentElement.firstElementChild.onclick();
+        }
+    </script>
+</body>

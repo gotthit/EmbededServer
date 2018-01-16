@@ -29,6 +29,7 @@ private:
 
     ISiteState* state;
 
+    int getHexadecimalDigitToDecimal(char ch);
     int getCodeInDecimal(const char * source, int index);
     Controller::specialCode getSpecialCode(const char * source, int& index);
     Controller::pasteType getPasteType(const char * source, int& index);

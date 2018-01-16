@@ -42,7 +42,7 @@ char * SiteState::GetURLForRequests()
 
 bool SiteState::SetValueInField(char * fieldName, char * value)
 {
-    return false;
+    return true;
 }
 
 SiteState::~SiteState()

@@ -20,9 +20,18 @@ void Controller::appendString(char * appendTo, int& index, const char * toAppend
     }
 }
 
+int Controller::getHexadecimalDigitToDecimal(char ch)
+{
+    if ('0' <= ch && ch <= '9')
+    {
+        return ch - '0';
+    }
+    return ch - 'A' + 10;
+}
+
 int Controller::getCodeInDecimal(const char * source, int index)
 {
-    return (source[index] - '0') * 16 + (source[index + 1] - '0');
+    return getHexadecimalDigitToDecimal(source[index]) * 16 + getHexadecimalDigitToDecimal(source[index + 1]);
 }
 
 Controller::specialCode Controller::getSpecialCode(const char * source, int& index)

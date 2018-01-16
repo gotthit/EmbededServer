@@ -44,25 +44,7 @@
         }
 
         .content {
-            margin-left: 250px;
-        }
-
-        @media (min-width: 1000px) {
-            .content {
-                padding-left: 20%;
-            }
-        }
-
-        @media (min-width: 750px) and (max-width: 1000px) {
-            .content {
-                padding-left: 10%;
-            }
-        }
-
-        @media (max-width: 750px) {
-            .content {
-                padding-left: 5%;
-            }
+            margin-left: 290px;
         }
 
         .parameter {
@@ -71,7 +53,7 @@
 
         .parameter-text {
             display: inline-block;
-            max-width: 200px;
+            max-width: 500px;
         }
 
         .parameter-value, .parameter-button {
@@ -96,11 +78,26 @@
 
 <body>
 
+    <!--
+        startOfPasteCode = '%43';
+
+        PasteFolders = 01, 
+        PasteFields = 02, 
+        PasteFieldId = 03, 
+        PasteFieldName = 04, 
+        PasteFieldDescription = 05, 
+        PasteFieldValue = 06,
+        PasteFieldPattern = 07, 
+        PasteFolderName = 08, 
+        PasteFormId = 09, 
+        PasteOpenedFormId = 0A, 
+        PasteServerUrl = 0B -->
+
     <div class='main'>
-        <div class='nav-bar'>
+        <div class='nav-bar'> %4301
             <div class='folder'>
-                <div class='folder-name'>Name 1234</div>
-                <div class='folder-body'>
+                <div class='folder-name'>%4308</div>
+                <div class='folder-body'>%4301
                     <div class='folder'>
                         <div class='form-name' id='6'>sdf fasfew wef</div>
                     </div>
@@ -146,92 +143,129 @@
                 <div class='folder-name'>Name 1234</div>
                 <div class='folder-body'>
                     <div class='folder'>
-                        <div class='form-name' id='5'>asdas asd a4</div>
+                        <div class='form-name' id='asdas asd a4'>asdas asd a4</div>
                     </div>
                 </div>
             </div>
 
             <div class='folder'>
-                <div class='form-name' id='4'>Name 1234</div>
+                <div class='form-name' id='%4309'>%4308</div>
             </div>
         </div>
 
-        <div class='content'>
-            <form class='parameter' method='get' action='http://localhost:80'>
+        <div class='content'> %4302
+            <div class='parameter' data-id='%4303'>
                 <div class='parameter-text'>
-                    <p class='parameter-name'>asdas asads</p>
-                    <p class='parameter-description'>rgeg WER FADSF</p>
+                    <p class='parameter-name'>%4304</p>
+                    <p class='parameter-description'>%4305</p>
                 </div>
-                <input class='hidden' type='text' name='form-id' value='123'>
-                <input class='hidden' type='text' name='field-name' value='123'>
-                <input class='parameter-value' type='text' pattern='.*' name='field-value' value='some val+++ue'>
-                <button class='parameter-button' type='submit'>Set property</button>
-            </form>
+                <input class='parameter-value' type='text' pattern='%4307' value='%4306'>
+                <button class='parameter-button'>Set property</button>
+            </div>
 
             <div class='parameter'>
                 <div class='parameter-text'>
-                    <p class='parameter-name'>asdas asads</p>
-                    <p class='parameter-description'>rgeg WER FADSF</p>
+                    <p class='parameter-name'>%4304</p>
+                    <p class='parameter-description'>%4305</p>
                 </div>
-                <input class='parameter-value' type='text' readonly value='some value'>          
+                <input class='parameter-value' type='text' readonly value='%4306'>          
             </div>
 
         </div>
     </div>
 
-    <script>
-        var folderNames = document.getElementsByClassName('folder-name');
-        var lastOpenedFolder = null;
+    <script>        
+        function initInteraction() {
+            var serverUrl = '%430B';
 
-        for (var i = 0; i < folderNames.length; ++i) {
-            folderNames[i].onclick = function() {
+            var prevCodeSymbolReplacement = '%' + '%'.charCodeAt(0).toString(16).toUpperCase();
+            var startOfParamNameSymbol = '%' + (65).toString(16).toUpperCase();
+            var endOfParamValueSymbol = '%' + (66).toString(16).toUpperCase();
 
-                this.parentElement.lastElementChild.style.height = 'auto';
-                if (lastOpenedFolder != null) {
-                    while (lastOpenedFolder.className == 'folder') {
-                        lastOpenedFolder.lastElementChild.style.height = '0px';
+            var folderNames = document.getElementsByClassName('folder-name');
+            var lastOpenedFolder = null;
 
-                        if (lastOpenedFolder == this.parentElement) {
-                            lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
-                            if (lastOpenedFolder.className != 'folder') {
-                                lastOpenedFolder = null;
+            for (var i = 0; i < folderNames.length; ++i) {
+                folderNames[i].onclick = function() {
+
+                    this.parentElement.lastElementChild.style.height = 'auto';
+                    if (lastOpenedFolder != null) {
+                        while (lastOpenedFolder.className == 'folder') {
+                            lastOpenedFolder.lastElementChild.style.height = '0px';
+
+                            if (lastOpenedFolder == this.parentElement) {
+                                lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
+                                if (lastOpenedFolder.className != 'folder') {
+                                    lastOpenedFolder = null;
+                                }
+                                return;
                             }
-                            return;
+                            lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
                         }
-                        lastOpenedFolder = lastOpenedFolder.parentElement.parentElement;
                     }
-                }
-                var currentOpenedFolder = this.parentElement;
-                while (currentOpenedFolder.className == 'folder') {
-                    currentOpenedFolder.lastElementChild.style.height = 'auto';
-                    currentOpenedFolder = currentOpenedFolder.parentElement.parentElement;
-                }
-                lastOpenedFolder = this.parentElement;
-            };
+                    var currentOpenedFolder = this.parentElement;
+                    while (currentOpenedFolder.className == 'folder') {
+                        currentOpenedFolder.lastElementChild.style.height = 'auto';
+                        currentOpenedFolder = currentOpenedFolder.parentElement.parentElement;
+                    }
+                    lastOpenedFolder = this.parentElement;
+                };
+            }
+
+            var parameterNames = document.getElementsByClassName('parameter-name');
+            var maxWidth = -1;
+            for (var i = 0; i < parameterNames.length; ++i) {
+                maxWidth = Math.max(maxWidth, parameterNames[i].clientWidth);
+            }
+            for (var i = 0; i < parameterNames.length; ++i) {
+                parameterNames[i].style.width = maxWidth + "px";
+            }
+
+
+            var formNames = document.getElementsByClassName('form-name');
+
+            for (var i = 0; i < formNames.length; ++i) {
+                formNames[i].onclick = function() {
+                    document.location.href = 
+                        (serverUrl + '?').replace(/[%]/g, prevCodeSymbolReplacement) + startOfParamNameSymbol
+                        + ('form-id=' + this.id).replace(/[%]/g, prevCodeSymbolReplacement) + endOfParamValueSymbol;
+                };
+            }
+
+            var parameterButtons = document.getElementsByClassName('parameter-button');
+
+            for (var i = 0; i < parameterButtons.length; ++i) {
+                parameterButtons[i].onclick = function() {
+                    var parameterId = this.parentElement.getAttribute('data-id');
+                    var parameterValue = this.parentElement.getElementsByClassName('parameter-value')[0].value;
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', serverUrl, false);
+
+                    xhr.send(startOfParamNameSymbol + ('field-id=' + parameterId).replace(/[%]/g, prevCodeSymbolReplacement) 
+                            + endOfParamValueSymbol 
+                            + startOfParamNameSymbol +('field-value=' + parameterValue).replace(/[%]/g, prevCodeSymbolReplacement) 
+                            + endOfParamValueSymbol);
+
+                    if (xhr.status == 200) {
+                        if (xhr.responseText == 'OK') {
+                            alert('The value of field successfully setted');
+                        } else {
+                            alert('Can not set the value of the field')
+                        }
+                    } else {
+                        alert(xhr.status + ': ' + xhr.statusText);
+                    }
+                };
+            }
+
+            var openedForm = document.getElementById('%430A');
+            if (openedForm != null) {
+                openedForm.parentElement.parentElement.parentElement.firstElementChild.onclick();
+            }
         }
+        initInteraction();
 
-        var formNames = document.getElementsByClassName('form-name');
 
-        for (var i = 0; i < formNames.length; ++i) {
-            formNames[i].onclick = function() {
-                
-                var id = this.id;
-
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', 'http://localhost:80?fname=Henry&lname=Ford', false);
-                xhr.send();
-
-                if (xhr.status != 200) {
-                    alert(xhr.status + ': ' + xhr.statusText);
-                } else {
-                    alert(xhr.responseText);
-                }
-            };
-        }
-
-        var openedForm = document.getElementById('');
-        if (openedForm != null) {
-            openedForm.parentElement.parentElement.parentElement.firstElementChild.onclick();
-        }
     </script>
 </body>

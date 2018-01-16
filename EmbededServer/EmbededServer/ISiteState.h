@@ -7,11 +7,11 @@ class ISiteState
 {
 public:
 
-    Folder * GetAllFolders(int& numberOfFolders);
+    virtual  Folder * GetAllFolders(int& numberOfFolders) = 0;
 
-    Field * GetAllFields(char * formName, int& numberOfFields);
+    virtual  Field * GetAllFields(char * formName, int& numberOfFields) = 0;
 
-    char * GetURLForRequests();
+    virtual  char * GetURLForRequests() = 0;
 
-    void SetValueInField(char * fieldName, char * value);
+    virtual  bool SetValueInField(char * fieldName, char * value) = 0;
 };

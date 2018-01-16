@@ -2,8 +2,9 @@
 
 
 
-Field::Field(char * name, char * description, char * value, char * pattern, bool readonly)
+Field::Field(char * fieldId, char * name, char * description, char * value, char * pattern, bool readonly)
 {
+    this->fieldId = fieldId;
     this->name = name;
     this->description = description;
     this->value = value;

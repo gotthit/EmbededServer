@@ -5,63 +5,333 @@ Controller::Controller(ISiteState* state)
     this->state = state;
 }
 
-int Controller::lengthOfString(const char * str)
+int Controller::LengthOfString(const char * str)
 {
     int length = 0;
     while (str[length] != '\0') ++length;
     return length;
 }
 
-void Controller::appendString(char * str, int& index, const char * toAppend)
+void Controller::appendString(char * appendTo, int& index, const char * toAppend)
 {
     for (int j = 0; toAppend[j] != '\0'; ++j, ++index)
     {
-        str[index] = toAppend[j];
+        appendTo[index] = toAppend[j];
     }
+}
+
+int Controller::getCodeInDecimal(const char * source, int index)
+{
+    return (source[index] - '0') * 16 + (source[index + 1] - '0');
+}
+
+Controller::specialCode Controller::getSpecialCode(const char * source, int& index)
+{
+    if (source[index] == codeChar)
+    {
+        int code = getCodeInDecimal(source, index + 1);
+        if (code == specialCode::StartOfParamName)
+        {
+            index += 3;
+            return specialCode::StartOfParamName;
+        }
+        if (code == specialCode::EndOfParamValue)
+        {
+            index += 3;
+            return specialCode::EndOfParamValue;
+        }
+        if (code == specialCode::PasteMark)
+        {
+            index += 3;
+            return specialCode::PasteMark;
+        }
+    }
+    return specialCode::NotASpecialCode;
+}
+
+char Controller::getNextChar(const char * source, int& index)
+{
+    char result;
+    if (source[index] == codeChar)
+    {
+        result = (char)getCodeInDecimal(source, index + 1);
+        index += 3;
+        return result;
+    }
+    result = source[index];
+    ++index;
+    return result;
+}
+
+Controller::pasteType Controller::getPasteType(const char * source, int& index)
+{
+    pasteType result = (pasteType)getCodeInDecimal(source, index);
+    index += 2;
+    return result;
 }
 
 char * Controller::getParameterValue(const char* requestBody, const char * parameterName)
 {
-    int start = -1;
-    int end = -1;
-    bool found;
-    for (int i = 0; requestBody[i] != '\0'; ++i)
+    int startOfValue = -1;
+    bool found = false;
+
+    int requestIndex = 0;
+    while (true)
     {
-        found = true;
-        int j = 0;
-        for (; parameterName[j] != '\0'; ++j)
+        char symbol;
+        specialCode code = getSpecialCode(requestBody, requestIndex);
+        if (code == specialCode::StartOfParamName)
         {
-            if (requestBody[i + j] != parameterName[j])
+            found = true;
+            for (int paramIndex = 0; parameterName[paramIndex] != '\0'; ++paramIndex)
             {
-                found = false;
+                if (parameterName[paramIndex] != getNextChar(requestBody, requestIndex))
+                {
+                    found = false;
+                    break;
+                }
+            }
+            if (found)
+            {
                 break;
             }
         }
-        if (found) 
+        else if (code == specialCode::NotASpecialCode)
         {
-            start = i + j;
-            break;
+            symbol = getNextChar(requestBody, requestIndex);
+            if (symbol == '\0')
+            {
+                break;
+            }
+        }
+        else
+        {
+            // Never goes here
         }
     }
-    if (found && requestBody[start] != '\0')
+
+    if (found)
     {
-        ++start;
-        end = start;
-        while (requestBody[end] != '\0' || requestBody[end] != '&')
+        ++requestIndex;
+        startOfValue = requestIndex;
+
+        int lengthOfValue = 0;
+        // remember lazy calculations of Boolean expressions
+        while (getSpecialCode(requestBody, requestIndex) != specialCode::EndOfParamValue && getNextChar(requestBody, requestIndex) != '\0')
         {
-            ++end;
+            ++lengthOfValue;
         }
-        char * result = new char[end - start + 1];
-        for (int i = start; i < end; ++i)
+        ++lengthOfValue;
+        char * result = new char[lengthOfValue];
+
+        requestIndex = startOfValue;
+
+        for (int i = 0; i < lengthOfValue; ++i)
         {
-            result[i - start] = requestBody[i];
+            result[i] = getNextChar(requestBody, requestIndex);
         }
-        result[end] = '\0';
+        result[lengthOfValue - 1] = '\0';
         return result;
     }
     else
     {
-        return '\0';
+        return new char[1] {'\0'};
+    }
+}
+
+bool Controller::checkRequestType(const char * requestBody, const char * type)
+{
+    bool equals = true;
+    for (int i = 0; type[i] != '\0'; ++i)
+    {
+        if (requestBody[i] == '\0' || requestBody[i] != type[i])
+        {
+            equals = false;
+            break;
+        }
+    }
+    return equals;
+}
+
+// You can leave some parameters as null if you are sure, that they will never be pasted
+void Controller::addNumberOfSymbolsInFilledPattern(
+    int& totalLength,
+    const char * pattern,
+    Folder * allFolders,
+    int numberOfFolders,
+    Field * allFields,
+    int numberOfFields,
+    const char * formId,
+    Folder * currentFolder,
+    Field * currentField)
+{
+    int patternIndex = 0;
+    char currentSymbol = '\0';
+    specialCode currentSpecialCode;
+    pasteType currentPasteType;
+
+    while (true)
+    {
+        currentSpecialCode = getSpecialCode(pattern, patternIndex);
+
+        if (currentSpecialCode == specialCode::PasteMark)
+        {
+            currentPasteType = getPasteType(pattern, patternIndex);
+
+            switch (currentPasteType)
+            {
+            case PasteFolders:
+
+                addFolderPartLength(allFolders, numberOfFolders, totalLength);
+                break;
+            case PasteFields:
+
+                addFieldsPartLength(allFields, numberOfFields, totalLength);
+                break;
+            case PasteFieldId:
+
+                totalLength += LengthOfString(currentField->fieldId);
+                break;
+            case PasteFieldName:
+
+                totalLength += LengthOfString(currentField->name);
+                break;
+            case PasteFieldDescription:
+
+                totalLength += LengthOfString(currentField->description);
+                break;
+            case PasteFieldValue:
+
+                totalLength += LengthOfString(currentField->value);
+                break;
+            case PasteFieldPattern:
+
+                totalLength += LengthOfString(currentField->pattern);
+                break;
+            case PasteFolderName:
+
+                totalLength += LengthOfString(currentFolder->name);
+                break;
+            case PasteFormId:
+
+                totalLength += LengthOfString(currentFolder->formId);
+                break;
+            case PasteOpenedFormId:
+
+                totalLength += LengthOfString(formId);
+                break;
+            case PasteServerUrl:
+
+                totalLength += LengthOfString(state->GetURLForRequests());
+                break;
+            default:
+                // Never go here. Add more cases if needed
+                break;
+            }
+        }
+        else
+        {
+            if (pattern[patternIndex] == '\0')
+            {
+                break;
+            }
+            ++patternIndex;
+
+            ++totalLength;
+        }
+    }
+}
+
+// You can leave some parameters as null if you are sure, that they will never be pasted
+void Controller::appendFilledPattern(
+    char * appendTo,
+    int& index,
+    const char * pattern,
+    Folder * allFolders,
+    int numberOfFolders,
+    Field * allFields,
+    int numberOfFields,
+    const char * formId,
+    Folder * currentFolder,
+    Field * currentField)
+{
+    int patternIndex = 0;
+    char currentSymbol = '\0';
+    specialCode currentSpecialCode;
+    pasteType currentPasteType;
+
+    while (true)
+    {
+        currentSpecialCode = getSpecialCode(pattern, patternIndex);
+
+        if (currentSpecialCode == specialCode::PasteMark)
+        {
+            currentPasteType = getPasteType(pattern, patternIndex);
+
+            switch (currentPasteType)
+            {
+            case PasteFolders:
+
+                createFolderPart(allFolders, numberOfFolders, appendTo, index);
+                break;
+            case PasteFields:
+
+                createFieldsPart(allFields, numberOfFields, appendTo, index);
+                break;
+            case PasteFieldId:
+
+                appendString(appendTo, index, currentField->fieldId);
+                break;
+            case PasteFieldName:
+
+                appendString(appendTo, index, currentField->name);
+                break;
+            case PasteFieldDescription:
+
+                appendString(appendTo, index, currentField->description);
+                break;
+            case PasteFieldValue:
+
+                appendString(appendTo, index, currentField->value);
+                break;
+            case PasteFieldPattern:
+
+                appendString(appendTo, index, currentField->pattern);
+                break;
+            case PasteFolderName:
+
+                appendString(appendTo, index, currentFolder->name);
+                break;
+            case PasteFormId:
+
+                appendString(appendTo, index, currentFolder->formId);
+                break;
+            case PasteOpenedFormId:
+
+                appendString(appendTo, index, formId);
+                break;
+            case PasteServerUrl:
+
+                appendString(appendTo, index, state->GetURLForRequests());
+                break;
+            default:
+                // Never go here. Add more cases if needed
+                break;
+            }
+        }
+        else
+        {
+            currentSymbol = pattern[patternIndex];
+
+            if (currentSymbol == '\0')
+            {
+                break;
+            }
+            appendTo[index] = currentSymbol;
+
+            ++index;
+            ++patternIndex;
+        }
     }
 }
 
@@ -71,75 +341,40 @@ void Controller::addFolderPartLength(Folder * allFolders, int numberOfFolders, i
     {
         if (allFolders[i].subfoldersLength == 0)
         {
-            totalLength += formNameBeginLength;
-            totalLength += formNameMiddleLength;
-            totalLength += formNameEndLength;
-
-            totalLength += 2 * lengthOfString(allFolders[i].formId);
+            addNumberOfSymbolsInFilledPattern(totalLength, formInFolderHtml, nullptr, 0, nullptr, 0, nullptr, &allFolders[i], nullptr);
         }
         else
         {
-            totalLength += beforeFolderNameLength;
-            totalLength += beforeFolderBodyLength;
-            totalLength += endOfFolderLength;
-
-            totalLength += lengthOfString(allFolders[i].name);
-
-            addFolderPartLength(allFolders[i].subfolders, allFolders[i].subfoldersLength, totalLength);
+            addNumberOfSymbolsInFilledPattern(totalLength, folderHtml, allFolders[i].subfolders, allFolders[i].subfoldersLength,
+                nullptr, 0, nullptr, &allFolders[i], nullptr);
         }
     }
 }
 
-void Controller::addFormPartLength(Field * allFields, int numberOfFields, char * formId, int& totalLength)
+void Controller::addFieldsPartLength(Field * allFields, int numberOfFields, int& totalLength)
 {
-    int urlLength = lengthOfString(state->GetURLForRequests());
-    int formNameLength = lengthOfString(formId);
     for (int i = 0; i < numberOfFields; ++i)
     {
+        int patternIndex = 0;
+
         if (allFields[i].readonly)
         {
-            totalLength += beforeReadonlyFieldNameLength;
-            totalLength += beforeReadonlyFieldDescriptionLength;
-            totalLength += beforeReadonlyFieldValueLength;
-            totalLength += endOfReadonlyFieldLength;
-
-            totalLength += lengthOfString(allFields[i].name);
-            totalLength += lengthOfString(allFields[i].description);
-            totalLength += lengthOfString(allFields[i].value);
+            addNumberOfSymbolsInFilledPattern(totalLength, readonlyFieldHtml, nullptr, 0, nullptr, 0, nullptr, nullptr, &allFields[i]);
         }
         else
         {
-            totalLength += beforeURLLength;
-            totalLength += beforeFieldNameLength;
-            totalLength += beforeFieldDescriptionLength;
-            totalLength += beforeHiddenFieldNameLength;
-            totalLength += beforeFieldPatternLength;
-            totalLength += beforeFieldValueLength;
-            totalLength += endOfFieldLength;
-
-            totalLength += urlLength;
-            totalLength += formNameLength;
-
-            totalLength += 2 * lengthOfString(allFields[i].name);
-            totalLength += lengthOfString(allFields[i].description);
-            totalLength += lengthOfString(allFields[i].pattern);
-            totalLength += lengthOfString(allFields[i].value);
+            addNumberOfSymbolsInFilledPattern(totalLength, fieldHtml, nullptr, 0, nullptr, 0, nullptr, nullptr, &allFields[i]);
         }
     }
 }
 
-int Controller::determineResultLength(Folder * allFolders, int numberOfFolders, Field * allFields, char * formId, int numberOfFields)
+int Controller::determineResultLength(Folder * allFolders, int numberOfFolders, Field * allFields, int numberOfFields, char * formId)
 {
-    int resultLength = 0;
-    resultLength += beforeForldersLength;
-    resultLength += beforeFromLength;
-    resultLength += beforeOpenedFolderIdLength;
-    resultLength += endOfHtmlLength;
+    int totalLength = 0;
 
-    addFolderPartLength(allFolders, numberOfFolders, resultLength);
-    addFormPartLength(allFields, numberOfFields, formId, resultLength);
+    addNumberOfSymbolsInFilledPattern(totalLength, mainHtml, allFolders, numberOfFolders, allFields, numberOfFields, formId, nullptr, nullptr);
 
-    return resultLength;
+    return totalLength;
 }
 
 void Controller::createFolderPart(Folder * allFolders, int numberOfFolders, char * result, int& index)
@@ -148,85 +383,39 @@ void Controller::createFolderPart(Folder * allFolders, int numberOfFolders, char
     {
         if (allFolders[i].subfoldersLength == 0)
         {
-            appendString(result, index, formNameBegin);
-            appendString(result, index, allFolders[i].formId);
-
-            appendString(result, index, formNameMiddle);
-            appendString(result, index, allFolders[i].formId);
-
-            appendString(result, index, formNameEnd);
+            appendFilledPattern(result, index, formInFolderHtml, nullptr, 0, nullptr, 0, nullptr, &allFolders[i], nullptr);
         }
         else
-        {
-            appendString(result, index, beforeFolderName);
-            appendString(result, index, allFolders[i].name);
-
-            appendString(result, index, beforeFolderBody);
-
-            createFolderPart(allFolders[i].subfolders, allFolders[i].subfoldersLength, result, index);
-
-            appendString(result, index, endOfFolder);
+        {   
+            appendFilledPattern(result, index, folderHtml, allFolders[i].subfolders, allFolders[i].subfoldersLength,
+                nullptr, 0, nullptr, &allFolders[i], nullptr);
         }
     }
 }
 
-void Controller::createFormPart(Field * allFields, int numberOfFields, char * formId, char * result, int& index)
+void Controller::createFieldsPart(Field * allFields, int numberOfFields, char * result, int& index)
 {
     for (int i = 0; i < numberOfFields; ++i)
     {
+        int patternIndex = 0;
+
         if (allFields[i].readonly)
         {
-            appendString(result, index, beforeReadonlyFieldName);
-            appendString(result, index, allFields[i].name);
-
-            appendString(result, index, beforeReadonlyFieldDescription);
-            appendString(result, index, allFields[i].description);
-
-            appendString(result, index, beforeReadonlyFieldValue);
-            appendString(result, index, allFields[i].value);
-
-            appendString(result, index, endOfReadonlyField);
+            appendFilledPattern(result, index, readonlyFieldHtml, nullptr, 0, nullptr, 0, nullptr, nullptr, &allFields[i]);
         }
         else
         {
-            appendString(result, index, beforeURL);
-            appendString(result, index, state->GetURLForRequests());
-
-            appendString(result, index, beforeFieldName);
-            appendString(result, index, allFields[i].name);
-
-            appendString(result, index, beforeFieldDescription);
-            appendString(result, index, allFields[i].description);
-
-            appendString(result, index, beforeHiddenFieldName);
-            appendString(result, index, allFields[i].name);
-
-            appendString(result, index, beforeFieldPattern);
-            appendString(result, index, allFields[i].pattern);
-
-            appendString(result, index, beforeFieldValue);
-            appendString(result, index, allFields[i].value);
-
-            appendString(result, index, endOfField);
+            appendFilledPattern(result, index, fieldHtml, nullptr, 0, nullptr, 0, nullptr, nullptr, &allFields[i]);
         }
     }
 }
 
-char* Controller::createRusult(int resultLength, Folder * allFolders, int numberOfFolders, Field * allFields, char * formId, int numberOfFields)
+char* Controller::createRusult(int resultLength, Folder * allFolders, int numberOfFolders, Field * allFields, int numberOfFields, char * formId)
 {
     char * result = new char[resultLength + 1];
-    int index = 0;
+    int resultIndex = 0;
 
-    appendString(result, index, beforeForlders);
-    createFolderPart(allFolders, numberOfFolders, result, index);
-
-    appendString(result, index, beforeFrom);
-    createFormPart(allFields, numberOfFields, formId, result, index);
-
-    appendString(result, index, beforeOpenedFolderId);
-    appendString(result, index, formId);
-
-    appendString(result, index, endOfHtml);
+    appendFilledPattern(result, resultIndex, mainHtml, allFolders, numberOfFolders, allFields, numberOfFields, formId, nullptr, nullptr);
 
     result[resultLength] = '\0';
 
@@ -235,26 +424,39 @@ char* Controller::createRusult(int resultLength, Folder * allFolders, int number
 
 char * Controller::HandleRequest(const char* requestBody)
 {
+    char * result = nullptr;
+
     char * formId = getParameterValue(requestBody, formIdParameter);
     char * fieldName = getParameterValue(requestBody, fieldNameParameter);
     char * fieldValue = getParameterValue(requestBody, fieldValueParameter);
 
-    int numberOfFolders = 0;
-    int numberOfFields = 0;
-    Folder * allFolders = state->GetAllFolders(numberOfFolders);
-    Field * allFields = nullptr;
-
-    if (fieldName != '\0')
+    if (checkRequestType(requestBody, "POST"))
     {
-        state->SetValueInField(fieldName, fieldValue);
+        bool isSucceeded = state->SetValueInField(fieldName, fieldValue);
+        if (isSucceeded)
+        {
+            result = new char[3] {'O', 'K', '\0'};
+        }
+        else
+        {
+            result = new char[5] {'F', 'A', 'I', 'L', '\0' };
+        }
     }
-    if (formId != '\0')
+    else
     {
-        allFields = state->GetAllFields(formId, numberOfFields);
-    }
 
-    int resultLength = determineResultLength(allFolders, numberOfFolders, allFields, formId, numberOfFields);
-    char * result = createRusult(resultLength, allFolders, numberOfFolders, allFields, formId, numberOfFields);
+        int numberOfFolders = 0;
+        int numberOfFields = 0;
+        Folder * allFolders = state->GetAllFolders(numberOfFolders);
+        Field * allFields = nullptr;
+        if (Controller::LengthOfString(formId) != 0)
+        {
+            allFields = state->GetAllFields(formId, numberOfFields);
+        }
+
+        int resultLength = determineResultLength(allFolders, numberOfFolders, allFields, numberOfFields, formId);
+        result = createRusult(resultLength, allFolders, numberOfFolders, allFields, numberOfFields, formId);
+    }
 
     delete[] formId;
     delete[] fieldName;
